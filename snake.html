@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>贪吃蛇 🐍</title>
+    <style>
+        * { 
+            touch-action: none; 
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 0;
+            color: #fff;
+            overflow: hidden;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        h1 { margin: 5px 0; font-size: 20px; }
+        
+        .difficulty {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .diff-btn {
+            padding: 6px 14px;
+            font-size: 13px;
+            background: #2a2a4a;
+            border: 2px solid #4a4a6a;
+            border-radius: 15px;
+            color: #aaa;
+            cursor: pointer;
+        }
+        .diff-btn.active {
+            background: #e94560;
+            border-color: #e94560;
+            color: white;
+        }
+        
+        .score {
+            font-size: 14px;
+            margin: 5px 0;
+        }
+        
+        .game-area {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        
+        #gameCanvas {
+            border: 3px solid #0f3460;
+            border-radius: 8px;
+            box-shadow: 0 0 30px rgba(233, 69, 96, 0.3);
+        }
+        
+        /* 十字方向键 - 3x3布局，中间空 */
+        .dpad {
+            display: grid;
+            grid-template-columns: repeat(3, 50px);
+            grid-template-rows: repeat(3, 45px);
+            gap: 3px;
+        }
+        
+        /* 十字布局 */
+        .dpad .touch-btn.up { grid-column: 2; grid-row: 1; }
+        .dpad .touch-btn.left { grid-column: 1; grid-row: 2; }
+        .dpad .touch-btn.center { grid-column: 2; grid-row: 2; background: transparent; border: none; }
+        .dpad .touch-btn.down { grid-column: 2; grid-row: 3; }
+        .dpad .touch-btn.right { grid-column: 3; grid-row: 2; }
+        
+        .speed-area {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .speed-btn {
+            width: 65px;
+            height: 65px;
+            font-size: 14px;
+            background: linear-gradient(135deg, #e94560, #ff6b6b);
+            border: 3px solid #fff;
+            border-radius: 50%;
+            color: white;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .touch-btn {
+            width: 50px;
+            height: 45px;
+            font-size: 20px;
+            background: #2a2a4a;
+            border: 2px solid #4a4a6a;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .restart-btn {
+            margin-top: 10px;
+            padding: 10px 25px;
+            font-size: 15px;
+            background: #e94560;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .info { 
+            font-size: 11px; 
+            color: #666; 
+            margin-top: 8px; 
+        }
+    </style>
+</head>
+<body>
+    <h1>🐍 贪吃蛇</h1>
+    
+    <div class="difficulty">
+        <button class="diff-btn active" onclick="setDifficulty(1)">简单</button>
+        <button class="diff-btn" onclick="setDifficulty(2)">中等</button>
+        <button class="diff-btn" onclick="setDifficulty(3)">困难</button>
+    </div>
+    
+    <div class="score">得分: <span id="score">0</span> | 速度: <span id="speedLevel">1</span>x | <span id="diffName">简单</span></div>
+    
+    <div class="game-area">
+        <div class="dpad">
+            <div class="touch-btn up" ontouchstart="handleTouch(event, 'up')">⬆️</div>
+            <div class="touch-btn left" ontouchstart="handleTouch(event, 'left')">⬅️</div>
+            <div class="touch-btn center"></div>
+            <div class="touch-btn down" ontouchstart="handleTouch(event, 'down')">⬇️</div>
+            <div class="touch-btn right" ontouchstart="handleTouch(event, 'right')">➡️</div>
+        </div>
+        
+        <canvas id="gameCanvas" width="320" height="320"></canvas>
+        
+        <div class="speed-area">
+            <div class="speed-btn" ontouchstart="handleTouch(event, 'speed')">
+                ⚡<br>加速
+            </div>
+        </div>
+    </div>
+    
+    <button class="restart-btn" onclick="resetGame()">重新开始</button>
+    
+    <div class="info">电脑：方向键/WASD | 空格加速</div>
+    
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        const gridSize = 16;
+        const tileCount = canvas.width / gridSize;
+        
+        let score = 0;
+        let snake = [];
+        let food = { x: 10, y: 10 };
+        let obstacles = [];
+        let dx = 0;
+        let dy = 0;
+        let speedLevel = 1;
+        let difficulty = 1;
+        let baseSpeed = 120;
+        let gameLoop;
+        let isRunning = false;
+        let lastDirectionChange = 0;
+        
+        const difficultySettings = {
+            1: { name: '简单', speed: 120, obstacles: 3, growBonus: 1 },
+            2: { name: '中等', speed: 90, obstacles: 6, growBonus: 1 },
+            3: { name: '困难', speed: 60, obstacles: 10, growBonus: 2 }
+        };
+        
+        function setDifficulty(level) {
+            difficulty = level;
+            document.querySelectorAll('.diff-btn').forEach((btn, i) => {
+                btn.classList.toggle('active', i + 1 === level);
+            });
+            document.getElementById('diffName').textContent = difficultySettings[level].name;
+            if (!isRunning) init();
+        }
+        
+        function init() {
+            const settings = difficultySettings[difficulty];
+            baseSpeed = settings.speed;
+            
+            snake = [
+                { x: 10, y: 10 },
+                { x: 10, y: 11 },
+                { x: 10, y: 12 }
+            ];
+            dx = 0;
+            dy = -1;
+            score = 0;
+            speedLevel = 1;
+            lastDirectionChange = 0;
+            generateObstacles(settings.obstacles);
+            placeFood();
+            updateScore();
+            updateSpeedDisplay();
+        }
+        
+        function generateObstacles(count) {
+            obstacles = [];
+            for (let i = 0; i < count; i++) {
+                let obs, valid;
+                do {
+                    valid = true;
+                    obs = {
+                        x: Math.floor(Math.random() * tileCount),
+                        y: Math.floor(Math.random() * tileCount)
+                    };
+                    for (let segment of snake) {
+                        if (obs.x === segment.x && obs.y === segment.y) { valid = false; break; }
+                    }
+                    if (obs.x === food.x && obs.y === food.y) valid = false;
+                } while (!valid);
+                obstacles.push(obs);
+            }
+        }
+        
+        function placeFood() {
+            let valid;
+            do {
+                valid = true;
+                food = {
+                    x: Math.floor(Math.random() * tileCount),
+                    y: Math.floor(Math.random() * tileCount)
+                };
+                for (let segment of snake) {
+                    if (segment.x === food.x && segment.y === food.y) { valid = false; break; }
+                }
+                for (let obs of obstacles) {
+                    if (food.x === obs.x && food.y === obs.y) { valid = false; break; }
+                }
+            } while (!valid);
+        }
+        
+        function updateScore() {
+            document.getElementById('score').textContent = score;
+        }
+        
+        function updateSpeedDisplay() {
+            document.getElementById('speedLevel').textContent = speedLevel;
+        }
+        
+        function draw() {
+            ctx.fillStyle = '#1a1a2e';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#555';
+            obstacles.forEach(obs => {
+                ctx.fillRect(obs.x * gridSize, obs.y * gridSize, gridSize - 2, gridSize - 2);
+            });
+            
+            snake.forEach((segment, index) => {
+                ctx.fillStyle = index === 0 ? '#e94560' : '#ff6b6b';
+                ctx.fillRect(segment.x * gridSize, segment.y * gridSize, gridSize - 2, gridSize - 2);
+            });
+            
+            ctx.fillStyle = '#4ecca3';
+            ctx.beginPath();
+            ctx.arc(
+                food.x * gridSize + gridSize / 2,
+                food.y * gridSize + gridSize / 2,
+                gridSize / 2 - 2,
+                0, Math.PI * 2
+            );
+            ctx.fill();
+        }
+        
+        function handleTouch(event, action) {
+            event.preventDefault();
+            
+            if (action === 'speed') {
+                toggleSpeed();
+                return;
+            }
+            
+            const now = Date.now();
+            
+            if (!isRunning) {
+                resetGame();
+                return;
+            }
+            
+            if (now - lastDirectionChange < 50) return;
+            lastDirectionChange = now;
+            
+            switch(action) {
+                case 'up': 
+                    if (dy !== 1) { dx = 0; dy = -1; } 
+                    break;
+                case 'down': 
+                    if (dy !== -1) { dx = 0; dy = 1; } 
+                    break;
+                case 'left': 
+                    if (dx !== 1) { dx = -1; dy = 0; } 
+                    break;
+                case 'right': 
+                    if (dx !== -1) { dx = 1; dy = 0; } 
+                    break;
+            }
+        }
+        
+        function update() {
+            const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+            
+            if (head.x < 0 || head.x >= tileCount || head.y < 0 || head.y >= tileCount) {
+                gameOver();
+                return;
+            }
+            
+            for (let segment of snake) {
+                if (head.x === segment.x && head.y === segment.y) {
+                    gameOver();
+                    return;
+                }
+            }
+            
+            for (let obs of obstacles) {
+                if (head.x === obs.x && head.y === obs.y) {
+                    gameOver();
+                    return;
+                }
+            }
+            
+            snake.unshift(head);
+            
+            if (head.x === food.x && head.y === food.y) {
+                const settings = difficultySettings[difficulty];
+                score += 10 * settings.growBonus;
+                updateScore();
+                
+                const threshold = difficulty === 3 ? 30 : 50;
+                if (score % threshold === 0) {
+                    generateObstacles(obstacles.length + 1);
+                }
+                placeFood();
+            } else {
+                snake.pop();
+            }
+        }
+        
+        function gameOver() {
+            isRunning = false;
+            clearInterval(gameLoop);
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#fff';
+            ctx.font = '24px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('游戏结束!', canvas.width / 2, canvas.height / 2);
+            ctx.font = '14px sans-serif';
+            ctx.fillText(`最终得分: ${score}`, canvas.width / 2, canvas.height / 2 + 25);
+        }
+        
+        function toggleSpeed() {
+            if (speedLevel < 3) speedLevel++;
+            else speedLevel = 1;
+            updateSpeedDisplay();
+            
+            if (isRunning) {
+                clearInterval(gameLoop);
+                const settings = difficultySettings[difficulty];
+                gameLoop = setInterval(() => {
+                    update();
+                    draw();
+                }, settings.speed / speedLevel);
+            }
+        }
+        
+        function resetGame() {
+            clearInterval(gameLoop);
+            init();
+            isRunning = true;
+            const settings = difficultySettings[difficulty];
+            gameLoop = setInterval(() => {
+                update();
+                draw();
+            }, settings.speed / speedLevel);
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === ' ' || e.code === 'Space') {
+                e.preventDefault();
+                toggleSpeed();
+                return;
+            }
+            
+            if (!isRunning && e.key !== 'r' && e.key !== 'R') return;
+            
+            switch(e.key) {
+                case 'ArrowUp':
+                case 'w':
+                case 'W':
+                    if (dy !== 1) { dx = 0; dy = -1; } break;
+                case 'ArrowDown':
+                case 's':
+                case 'S':
+                    if (dy !== -1) { dx = 0; dy = 1; } break;
+                case 'ArrowLeft':
+                case 'a':
+                case 'A':
+                    if (dx !== 1) { dx = -1; dy = 0; } break;
+                case 'ArrowRight':
+                case 'd':
+                case 'D':
+                    if (dx !== -1) { dx = 1; dy = 0; } break;
+            }
+        });
+        
+        init();
+        draw();
+    </script>
+</body>
+</html>
