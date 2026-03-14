@@ -59,28 +59,28 @@
             margin: 5px 0;
         }
         
-        .game-area {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        
         #gameCanvas {
             border: 3px solid #0f3460;
             border-radius: 8px;
             box-shadow: 0 0 30px rgba(233, 69, 96, 0.3);
         }
         
+        /* 触控区域 - 画布下方 */
+        .touch-area {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+            width: 100%;
+        }
+        
         /* 十字方向键 - 3x3布局 */
         .dpad {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-template-rows: repeat(3, 1fr);
+            grid-template-columns: repeat(3, 55px);
+            grid-template-rows: repeat(3, 50px);
             gap: 3px;
-            width: 140px;
-            height: 140px;
         }
         
         .dpad .touch-btn.up { grid-column: 2; grid-row: 1; }
@@ -89,16 +89,9 @@
         .dpad .touch-btn.down { grid-column: 2; grid-row: 3; }
         .dpad .touch-btn.right { grid-column: 3; grid-row: 2; }
         
-        .speed-area {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-        }
-        
         .speed-btn {
-            width: 65px;
-            height: 65px;
+            width: 70px;
+            height: 70px;
             font-size: 14px;
             background: linear-gradient(135deg, #e94560, #ff6b6b);
             border: 3px solid #fff;
@@ -111,7 +104,9 @@
         }
         
         .touch-btn {
-            font-size: 20px;
+            width: 55px;
+            height: 50px;
+            font-size: 22px;
             background: #2a2a4a;
             border: 2px solid #4a4a6a;
             border-radius: 8px;
@@ -144,42 +139,45 @@
                 height: 400px;
             }
             .dpad {
-                width: 180px;
-                height: 180px;
+                grid-template-columns: repeat(3, 70px);
+                grid-template-rows: repeat(3, 60px);
+                gap: 5px;
             }
             .touch-btn {
+                width: 70px;
+                height: 60px;
                 font-size: 28px;
             }
             .speed-btn {
                 width: 80px;
                 height: 80px;
-                font-size: 18px;
+                font-size: 16px;
             }
             h1 { font-size: 28px; }
             .score { font-size: 18px; }
         }
         
-        /* 小手机适配 */
+        /* 小手机 */
         @media (max-width: 380px) {
             #gameCanvas {
                 width: 280px;
                 height: 280px;
             }
             .dpad {
-                width: 120px;
-                height: 120px;
+                grid-template-columns: repeat(3, 45px);
+                grid-template-rows: repeat(3, 42px);
             }
             .touch-btn {
-                font-size: 16px;
+                width: 45px;
+                height: 42px;
+                font-size: 18px;
             }
             .speed-btn {
-                width: 55px;
-                height: 55px;
+                width: 60px;
+                height: 60px;
                 font-size: 12px;
             }
-            .game-area {
-                gap: 8px;
-            }
+            .touch-area { gap: 12px; }
         }
     </style>
 </head>
@@ -194,7 +192,10 @@
     
     <div class="score">得分: <span id="score">0</span> | 速度: <span id="speedLevel">1</span>x | <span id="diffName">简单</span></div>
     
-    <div class="game-area">
+    <canvas id="gameCanvas" width="320" height="320"></canvas>
+    
+    <!-- 触控区域移到下方 -->
+    <div class="touch-area">
         <div class="dpad">
             <div class="touch-btn up" ontouchstart="handleTouch(event, 'up')">⬆️</div>
             <div class="touch-btn left" ontouchstart="handleTouch(event, 'left')">⬅️</div>
@@ -203,12 +204,8 @@
             <div class="touch-btn right" ontouchstart="handleTouch(event, 'right')">➡️</div>
         </div>
         
-        <canvas id="gameCanvas" width="320" height="320"></canvas>
-        
-        <div class="speed-area">
-            <div class="speed-btn" ontouchstart="handleTouch(event, 'speed')">
-                ⚡<br>加速
-            </div>
+        <div class="speed-btn" ontouchstart="handleTouch(event, 'speed')">
+            ⚡<br>加速
         </div>
     </div>
     
