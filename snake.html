@@ -107,30 +107,31 @@
         .touch-area {
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 20px;
+            justify-content: space-between;
             margin-top: 15px;
             width: 100%;
+            max-width: 400px;
+            padding: 0 10px;
+            box-sizing: border-box;
         }
         
-        /* 十字方向键 - 3x3布局 */
-        .dpad {
+        /* 右侧方向键 - 上下左右布局 */
+        .dpad-right {
             display: grid;
-            grid-template-columns: repeat(3, 55px);
+            grid-template-columns: repeat(3, 50px);
             grid-template-rows: repeat(3, 50px);
-            gap: 3px;
+            gap: 4px;
         }
         
-        .dpad .touch-btn.up { grid-column: 2; grid-row: 1; }
-        .dpad .touch-btn.left { grid-column: 1; grid-row: 2; }
-        .dpad .touch-btn.center { grid-column: 2; grid-row: 2; background: transparent; border: none; }
-        .dpad .touch-btn.down { grid-column: 2; grid-row: 3; }
-        .dpad .touch-btn.right { grid-column: 3; grid-row: 2; }
+        .dpad-right .touch-btn.up { grid-column: 2; grid-row: 1; }
+        .dpad-right .touch-btn.left { grid-column: 1; grid-row: 2; }
+        .dpad-right .touch-btn.right { grid-column: 3; grid-row: 2; }
+        .dpad-right .touch-btn.down { grid-column: 2; grid-row: 3; }
         
         .speed-btn {
-            width: 70px;
-            height: 70px;
-            font-size: 14px;
+            width: 60px;
+            height: 60px;
+            font-size: 13px;
             background: linear-gradient(135deg, #e94560, #ff6b6b);
             border: 3px solid #fff;
             border-radius: 50%;
@@ -142,7 +143,7 @@
         }
         
         .touch-btn {
-            width: 55px;
+            width: 50px;
             height: 50px;
             font-size: 22px;
             background: #2a2a4a;
@@ -176,7 +177,7 @@
                 width: 400px;
                 height: 400px;
             }
-            .dpad {
+            .dpad-right {
                 grid-template-columns: repeat(3, 70px);
                 grid-template-rows: repeat(3, 60px);
                 gap: 5px;
@@ -201,21 +202,46 @@
                 width: 280px;
                 height: 280px;
             }
-            .dpad {
-                grid-template-columns: repeat(3, 45px);
+            .dpad-right {
+                grid-template-columns: repeat(3, 42px);
                 grid-template-rows: repeat(3, 42px);
             }
             .touch-btn {
-                width: 45px;
+                width: 42px;
                 height: 42px;
                 font-size: 18px;
             }
             .speed-btn {
-                width: 60px;
-                height: 60px;
-                font-size: 12px;
+                width: 50px;
+                height: 50px;
+                font-size: 11px;
             }
-            .touch-area { gap: 12px; }
+            .touch-area { gap: 8px; }
+        }
+        
+        /* 平板适配 */
+        @media (min-width: 768px) {
+            #gameCanvas {
+                width: 400px;
+                height: 400px;
+            }
+            .dpad-right {
+                grid-template-columns: repeat(3, 70px);
+                grid-template-rows: repeat(3, 60px);
+                gap: 5px;
+            }
+            .touch-btn {
+                width: 70px;
+                height: 60px;
+                font-size: 28px;
+            }
+            .speed-btn {
+                width: 80px;
+                height: 80px;
+                font-size: 16px;
+            }
+            h1 { font-size: 28px; }
+            .score { font-size: 18px; }
         }
     </style>
 </head>
@@ -240,14 +266,15 @@
     
     <canvas id="gameCanvas" width="320" height="320"></canvas>
     
-    <!-- 触控区域移到下方 -->
+    <!-- 触控区域 -->
     <div class="touch-area">
-        <div class="dpad">
+        <div style="flex: 1;"></div>
+        
+        <div class="dpad-right">
             <div class="touch-btn up" ontouchstart="handleTouch(event, 'up')" onclick="handleClick('up')">⬆️</div>
             <div class="touch-btn left" ontouchstart="handleTouch(event, 'left')" onclick="handleClick('left')">⬅️</div>
-            <div class="touch-btn center"></div>
-            <div class="touch-btn down" ontouchstart="handleTouch(event, 'down')" onclick="handleClick('down')">⬇️</div>
             <div class="touch-btn right" ontouchstart="handleTouch(event, 'right')" onclick="handleClick('right')">➡️</div>
+            <div class="touch-btn down" ontouchstart="handleTouch(event, 'down')" onclick="handleClick('down')">⬇️</div>
         </div>
         
         <div class="speed-btn" ontouchstart="handleTouch(event, 'speed')" onclick="handleClick('speed')">
