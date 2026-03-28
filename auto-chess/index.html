@@ -314,6 +314,13 @@ function drawBU(u){
 // Shop - draw character icons on mini canvases
 function roll(){S.sh=[];for(let i=0;i<5;i++)S.sh.push({t:PK[Math.random()*PK.length|0],u:Math.random().toString(36).slice(2)});rShop()}
 
+function makeCharCanvas(type,w,h,x,y,sz,isEnemy,star){
+  const c=document.createElement('canvas');
+  c.width=w;c.height=h;c.style.width=Math.round(w/2)+'px';c.style.height=Math.round(h/2)+'px';
+  c.style.display='block';c.style.margin='0 auto 2px';
+  drawChar(c.getContext('2d'),type,x,y,sz,isEnemy,star);
+  return c;
+}
 function rShop(){
   const el=document.getElementById('shop');
   el.innerHTML='';
@@ -322,21 +329,10 @@ function rShop(){
     const div=document.createElement('div');
     div.className='shop-item'+(s.b?' bought':'');
     div.onclick=()=>buy(i);
-    // mini canvas for character
-    const mc=document.createElement('canvas');
-    mc.width=60;mc.height=50;
-    mc.style.width='30px';mc.style.height='25px';
-    const mctx=mc.getContext('2d');
-    drawChar(mctx,s.t,30,28,24,false,1);
-    div.appendChild(mc);
-    div.innerHTML+=`<div class="name">${d.n}</div><div class="cost">${d.co}💰</div><div class="race">${RACE_NAMES[d.race]}</div>`;
-    // re-append canvas (innerHTML overwrites)
-    const mc2=document.createElement('canvas');
-    mc2.width=60;mc2.height=50;mc2.style.width='30px';mc2.style.height='25px';
-    mc2.style.display='block';mc2.style.margin='0 auto 2px';
-    const mctx2=mc2.getContext('2d');
-    drawChar(mctx2,s.t,30,28,24,false,1);
-    div.insertBefore(mc2,div.firstChild);
+    div.appendChild(makeCharCanvas(s.t,60,50,30,28,22,false,1));
+    const nm=document.createElement('div');nm.className='name';nm.textContent=d.n;div.appendChild(nm);
+    const co=document.createElement('div');co.className='cost';co.textContent=d.co+'💰';div.appendChild(co);
+    const ra=document.createElement('div');ra.className='race';ra.textContent=RACE_NAMES[d.race];div.appendChild(ra);
     el.appendChild(div);
   });
 }
@@ -369,17 +365,8 @@ function rBn(){
     const div=document.createElement('div');
     div.className='bench-unit'+(S.sel===i?' selected':'');
     div.onclick=()=>cBn(i);
-    const mc=document.createElement('canvas');
-    mc.width=40;mc.height=40;
-    mc.style.width='36px';mc.style.height='36px';
-    const mctx=mc.getContext('2d');
-    drawChar(mctx,u.type,20,20,18,false,u.star);
-    div.appendChild(mc);
-    if(u.star>1){
-      const badge=document.createElement('div');
-      badge.className='star-badge';badge.textContent=u.star;
-      div.appendChild(badge);
-    }
+    div.appendChild(makeCharCanvas(u.type,40,40,20,20,16,false,u.star));
+    if(u.star>1){const b=document.createElement('div');b.className='star-badge';b.textContent=u.star;div.appendChild(b)}
     el.appendChild(div);
   });
 }
