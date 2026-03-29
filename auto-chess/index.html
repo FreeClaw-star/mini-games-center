@@ -1052,10 +1052,10 @@ function aiPrep(){
 
 // Synergy
 function getSyn(bd){
-  const ct={A:0,B:0,C:0,D:0};for(let k in bd)ct[bd[k].race]++;return SYN.filter(s=>ct[s.id]>=s.nd);
+  const ct={A:0,B:0,C:0,D:0};for(let k in bd)ct[P[bd[k].type].race]++;return SYN.filter(s=>ct[s.id]>=s.nd);
 }
 function rSyn(){
-  const a=getSyn(S.bd),ct={A:0,B:0,C:0,D:0};for(let k in S.bd)ct[S.bd[k].race]++;
+  const a=getSyn(S.bd),ct={A:0,B:0,C:0,D:0};for(let k in S.bd)ct[P[S.bd[k].type].race]++;
   document.getElementById('syn').innerHTML=SYN.map(s=>{
     const on=a.find(x=>x.id===s.id);
     return`<div class="synergy${on?' active':''}">${s.ic}${s.n}(${ct[s.id]}/${s.nd})${on?'✅':''}</div>`
