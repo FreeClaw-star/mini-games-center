@@ -1056,7 +1056,10 @@ function getSyn(bd){
 }
 function rSyn(){
   const a=getSyn(S.bd),ct={A:0,B:0,C:0,D:0};for(let k in S.bd)ct[S.bd[k].race||P[S.bd[k].type].race]++;
-  document.getElementById('syn').innerHTML=SYN.map(s=>{
+  const total=a.length;
+  document.getElementById('syn').innerHTML=
+    `<div class="synergy active" style="font-weight:bold">🏆${total}个羁绊</div>`+
+    SYN.map(s=>{
     const on=a.find(x=>x.id===s.id);
     return`<div class="synergy${on?' active':''}">${s.ic}${s.n}(${ct[s.id]}/${s.nd})${on?'✅':''}</div>`
   }).join('');
