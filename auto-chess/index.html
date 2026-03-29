@@ -40,6 +40,12 @@ body{background:#1a1a2e;color:#eee;font-family:'Segoe UI',sans-serif;overflow-x:
 .msg{text-align:center;font-size:12px;color:#e94560;min-height:16px;padding:2px}
 .label{font-size:10px;color:#555;text-align:center;margin:2px 0}
 .help{text-align:center;font-size:10px;color:#444;padding:4px}
+.king-hud{display:flex;align-items:center;gap:6px;padding:4px 8px;background:linear-gradient(135deg,#2c1810,#4a2520);border:1px solid #ffd700;border-radius:6px;margin:4px 0;flex-wrap:wrap;justify-content:center}
+.king-hud .kh-label{font-size:11px;color:#ffd700;font-weight:bold}
+.king-hud .kh-stat{font-size:10px;color:#ccc;padding:2px 5px;background:#111;border-radius:3px}
+.king-hud .kh-btn{font-size:10px;padding:3px 8px;border:1px solid #888;border-radius:4px;background:#222;color:#eee;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.king-hud .kh-btn:active{background:#444}
+.king-hud .kh-btn.active{border-color:#ffd700;color:#ffd700;background:#3a2a10}
 </style>
 </head>
 <body>
@@ -60,7 +66,14 @@ body{background:#1a1a2e;color:#eee;font-family:'Segoe UI',sans-serif;overflow-x:
     <button class="btn btn-fight" id="btnF">⚔️ 开战!</button>
   </div>
   <div class="shop" id="shop"></div>
-  <div class="help">点击棋盘格子可下场棋子 | 3个同星自动合成</div>
+  <div class="king-hud" id="kingHud">
+    <span class="kh-label">👑国王</span>
+    <span class="kh-stat" id="khHp">❤️120</span>
+    <span class="kh-stat" id="khAtk">⚔️18</span>
+    <button class="kh-btn active" id="khMelee" onclick="setKingMode('melee')">🗡️近战</button>
+    <button class="kh-btn" id="khRange" onclick="setKingMode('range')">🏹远程</button>
+  </div>
+  <div class="help">准备阶段：点国王选中→点相邻格移动 | 战斗中自动按模式攻击</div>
 </div>
 <script>
 // Polyfill roundRect
@@ -628,6 +641,113 @@ function drawChar(ctx,type,cx,cy,sz,isEnemy,star,animPhase){
       ctx.fillRect(1.2,-6,1.8,1.8);
     }
   }
+  else if(type==='king'){
+    // === KING: regal hero with crown and sword ===
+    const mode=animPhase>0?'attack':'idle';
+    // Royal cape
+    ctx.fillStyle='#8e1c3b';
+    ctx.beginPath();ctx.moveTo(-8,0);ctx.lineTo(-10,12);ctx.lineTo(10,12);ctx.lineTo(8,0);ctx.closePath();ctx.fill();
+    ctx.strokeStyle='#ffd700';ctx.lineWidth=0.8;
+    ctx.beginPath();ctx.moveTo(-8,0);ctx.lineTo(-10,12);ctx.lineTo(10,12);ctx.lineTo(8,0);ctx.closePath();ctx.stroke();
+
+    if(animPhase>0){
+      const sl=swing;
+      // Sword thrust forward
+      const armAng=-0.3+sl*1.2;
+      ctx.strokeStyle=skinColor;ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(7,1);ctx.lineTo(7+Math.cos(armAng)*8,1+Math.sin(armAng)*8);ctx.stroke();
+      // Royal sword
+      ctx.strokeStyle='#ffd700';ctx.lineWidth=2.5;
+      const sTipX=7+Math.cos(armAng)*8+Math.cos(armAng)*14;
+      const sTipY=1+Math.sin(armAng)*8+Math.sin(armAng)*14;
+      ctx.beginPath();ctx.moveTo(7+Math.cos(armAng)*8,1+Math.sin(armAng)*8);ctx.lineTo(sTipX,sTipY);ctx.stroke();
+      // Blade
+      ctx.fillStyle='#fff';
+      ctx.beginPath();
+      ctx.moveTo(sTipX+Math.cos(armAng+2.5)*3,sTipY+Math.sin(armAng+2.5)*3);
+      ctx.lineTo(sTipX+Math.cos(armAng)*5,sTipY+Math.sin(armAng)*5);
+      ctx.lineTo(sTipX+Math.cos(armAng-2.5)*3,sTipY+Math.sin(armAng-2.5)*3);
+      ctx.closePath();ctx.fill();
+      // Guard (cross)
+      const gX=7+Math.cos(armAng)*8,gY=1+Math.sin(armAng)*8;
+      ctx.strokeStyle='#f1c40f';ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(gX+Math.cos(armAng+1.57)*5,gY+Math.sin(armAng+1.57)*5);
+      ctx.lineTo(gX-Math.cos(armAng+1.57)*5,gY-Math.sin(armAng+1.57)*5);ctx.stroke();
+      // Left arm balance
+      ctx.strokeStyle=skinColor;ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(-7,1);ctx.lineTo(-11,5-sl*3);ctx.stroke();
+    } else {
+      // Idle: sword at rest, regal stance
+      ctx.beginPath();ctx.moveTo(-7,1);ctx.lineTo(-11,6);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(7,1);ctx.lineTo(11,5);ctx.stroke();
+      // Sword at right side
+      ctx.strokeStyle='#ffd700';ctx.lineWidth=2.5;
+      ctx.beginPath();ctx.moveTo(11,5);ctx.lineTo(11,-8);ctx.stroke();
+      ctx.fillStyle='#ecf0f1';
+      ctx.beginPath();ctx.moveTo(9,-8);ctx.lineTo(11,-14);ctx.lineTo(13,-8);ctx.closePath();ctx.fill();
+      // Jeweled guard
+      ctx.strokeStyle='#f1c40f';ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(7,3);ctx.lineTo(15,3);ctx.stroke();
+      ctx.fillStyle='#e74c3c';ctx.beginPath();ctx.arc(11,3,1.5,0,Math.PI*2);ctx.fill();
+    }
+    // Crown
+    ctx.fillStyle='#ffd700';
+    ctx.beginPath();ctx.moveTo(-6,-8);ctx.lineTo(-5,-14);ctx.lineTo(-2,-10);ctx.lineTo(0,-15);ctx.lineTo(2,-10);ctx.lineTo(5,-14);ctx.lineTo(6,-8);ctx.closePath();ctx.fill();
+    // Crown jewels
+    ctx.fillStyle='#e74c3c';ctx.beginPath();ctx.arc(0,-12,1.2,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#3498db';ctx.beginPath();ctx.arc(-3.5,-11,1,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.arc(3.5,-11,1,0,Math.PI*2);ctx.fill();
+  }
+  else if(type==='demon'){
+    // === DEMON: dark horned creature ===
+    const rage=animPhase>0?swing:0;
+    // Wings (bat-like)
+    ctx.fillStyle='#2c0a0a';
+    ctx.beginPath();ctx.moveTo(-7,-2);ctx.lineTo(-16,-8-rage*5);ctx.lineTo(-14,4);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(7,-2);ctx.lineTo(16,-8-rage*5);ctx.lineTo(14,4);ctx.closePath();ctx.fill();
+
+    if(animPhase>0){
+      // Claw swipe attack
+      const clawAng=-0.5+swing*1.5;
+      ctx.strokeStyle='#4a0e0e';ctx.lineWidth=3;
+      // Left claw
+      ctx.beginPath();ctx.moveTo(-7,1);ctx.lineTo(-7+Math.cos(clawAng-0.3)*8,1+Math.sin(clawAng-0.3)*8);ctx.stroke();
+      ctx.strokeStyle='#cc0000';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(-7+Math.cos(clawAng-0.3)*8,1+Math.sin(clawAng-0.3)*8);
+      ctx.lineTo(-7+Math.cos(clawAng-0.3)*13,1+Math.sin(clawAng-0.3)*13);ctx.stroke();
+      // Right claw
+      ctx.strokeStyle='#4a0e0e';ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(7,1);ctx.lineTo(7+Math.cos(clawAng+0.3)*8,1+Math.sin(clawAng+0.3)*8);ctx.stroke();
+      ctx.strokeStyle='#cc0000';ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(7+Math.cos(clawAng+0.3)*8,1+Math.sin(clawAng+0.3)*8);
+      ctx.lineTo(7+Math.cos(clawAng+0.3)*13,1+Math.sin(clawAng+0.3)*13);ctx.stroke();
+      // Fire breath particles
+      if(swing>0.5){
+        for(let i=0;i<4;i++){
+          ctx.fillStyle=`rgba(255,${Math.random()*100},0,${swing-0.5})`;
+          ctx.beginPath();ctx.arc(Math.cos(clawAng)*15+Math.random()*8-4,Math.sin(clawAng)*15+Math.random()*8,2,0,Math.PI*2);ctx.fill();
+        }
+      }
+    } else {
+      // Idle claws
+      ctx.strokeStyle='#4a0e0e';ctx.lineWidth=3;
+      ctx.beginPath();ctx.moveTo(-7,1);ctx.lineTo(-11,7);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(7,1);ctx.lineTo(11,7);ctx.stroke();
+      // Claws
+      ctx.strokeStyle='#cc0000';ctx.lineWidth=1.5;
+      ctx.beginPath();ctx.moveTo(-11,7);ctx.lineTo(-13,12);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(-11,7);ctx.lineTo(-10,12);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(11,7);ctx.lineTo(13,12);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(11,7);ctx.lineTo(10,12);ctx.stroke();
+    }
+    // Horns
+    ctx.fillStyle='#3a0808';
+    ctx.beginPath();ctx.moveTo(-5,-8);ctx.lineTo(-7,-18);ctx.lineTo(-2,-9);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(5,-8);ctx.lineTo(7,-18);ctx.lineTo(2,-9);ctx.closePath();ctx.fill();
+    // Dark body overlay
+    ctx.fillStyle='rgba(80,0,0,0.5)';
+    ctx.beginPath();ctx.roundRect(-7,-2,14,10,2);ctx.fill();
+  }
 
   // Head
   ctx.fillStyle=skinColor;
@@ -668,7 +788,9 @@ const P={
   healer:{n:'奶妈',hp:45,at:8,sp:1.8,rn:3,race:'D',co:2,heal:1},
   berserker:{n:'狂战',hp:55,at:20,sp:0.8,rn:1,race:'A',co:3,ls:0.3},
   ninja:{n:'忍者',hp:28,at:22,sp:0.6,rn:1,race:'C',co:3,crit:1,blink:1},
-  priest:{n:'牧师',hp:50,at:10,sp:2.0,rn:3,race:'D',co:3,heal:1,shield:1}
+  priest:{n:'牧师',hp:50,at:10,sp:2.0,rn:3,race:'D',co:3,heal:1,shield:1},
+  king:{n:'国王',hp:120,at:18,sp:1.0,rn:2,race:'E',co:0,hero:1},
+  demon:{n:'恶魔',hp:100,at:22,sp:0.9,rn:3,race:'F',co:0,demon:1}
 };
 const SYN=[
   {id:'A',n:'战士联盟',nd:2,ds:'+20%血',ic:'⚔️'},
@@ -676,11 +798,12 @@ const SYN=[
   {id:'C',n:'暗影之力',nd:2,ds:'+30%暴击',ic:'🌑'},
   {id:'D',n:'神圣祝福',nd:2,ds:'+30%治疗',ic:'💚'}
 ];
-const PK=Object.keys(P);
+const PK=Object.keys(P).filter(k=>!P[k].hero&&!P[k].demon);
 const RACE_NAMES={A:'战士',B:'远程',C:'暗影',D:'神圣'};
 
-// State
-let S={r:1,g:GOLD,php:HP,ahp:HP,ph:'prep',bd:{},bn:[],sh:[],ab:{},sel:-1,bu:[],bi:null,w:0,l:0,dq:[],fx:[]};
+// State - king is the player's hero, demon is AI's hero
+let S={r:1,g:GOLD,php:HP,ahp:HP,ph:'prep',bd:{},bn:[],sh:[],ab:{},sel:-1,bu:[],bi:null,w:0,l:0,dq:[],fx:[],
+  king:{mode:'melee',col:2,row:0,selected:false}, demonPos:{col:2,row:3}};
 const cv=document.getElementById('c'),cx=cv.getContext('2d');
 let W,H,cw,frameTick=0;
 
@@ -747,8 +870,40 @@ function draw(){
       cx.restore();return true;
     });
   } else {
+    // Prep phase: draw units
     for(let k in S.bd){const[r,c]=k.split(',').map(Number);drawU(r+R+1,c,S.bd[k],false)}
     for(let k in S.ab){const[r,c]=k.split(',').map(Number);drawHidden(r+1,c)}
+
+    // Draw movement highlights for selected king
+    if(S.king.selected){
+      const kR=S.king.row+R+1,kC=S.king.col;
+      const dirs=[[0,-1],[0,1],[-1,0],[1,0]];
+      dirs.forEach(([dr,dc])=>{
+        const nr=kR+dr,nc=kC+dc;
+        if(nc>=0&&nc<C&&nr>=R+1&&nr<R*2+1){
+          const hp=cp(nr,nc);
+          cx.fillStyle='rgba(255,215,0,0.2)';cx.strokeStyle='#ffd700';cx.lineWidth=1.5;
+          cx.beginPath();cx.roundRect(hp.x-hp.w/2+2,hp.y-hp.h/2+2,hp.w-4,hp.h-4,4);cx.fill();cx.stroke();
+          cx.fillStyle='#ffd700';cx.font='10px sans-serif';cx.textAlign='center';cx.textBaseline='middle';
+          cx.fillText('⬆',hp.x,hp.y);
+        }
+      });
+    }
+
+    // Draw King on player's side
+    const kp=cp(S.king.row+R+1,S.king.col);
+    // King glow if selected
+    if(S.king.selected){
+      cx.fillStyle='rgba(255,215,0,0.15)';cx.strokeStyle='#ffd700';cx.lineWidth=2;
+      cx.beginPath();cx.roundRect(kp.x-kp.w/2+1,kp.y-kp.h/2+1,kp.w-2,kp.h-2,4);cx.fill();cx.stroke();
+    }
+    drawChar(cx,'king',kp.x,kp.y,kp.w*.6,false,1,0);
+
+    // Draw Demon on AI's side
+    const dp=cp(3-S.demonPos.row,S.demonPos.col);
+    cx.fillStyle='rgba(200,0,0,0.15)';cx.strokeStyle='#cc0000';cx.lineWidth=1;
+    cx.beginPath();cx.roundRect(dp.x-dp.w/2+1,dp.y-dp.h/2+1,dp.w-2,dp.h-2,4);cx.fill();cx.stroke();
+    drawChar(cx,'demon',dp.x,dp.y,dp.w*.6,true,1,0);
   }
 }
 
@@ -1012,6 +1167,38 @@ function autoPlace(bi){
 // Board click
 function boardClick(mx,my){
   if(S.ph!=='prep')return;
+  // Check if clicking on the king
+  const kp=cp(S.king.row+R+1,S.king.col);
+  if(mx>kp.x-kp.w/2&&mx<kp.x+kp.w/2&&my>kp.y-kp.h/2&&my<kp.y+kp.h/2){
+    S.king.selected=!S.king.selected;
+    if(S.king.selected)msg('👑国王选中！点击相邻格子移动');
+    draw();return;
+  }
+  // Check if clicking adjacent cell to move king
+  if(S.king.selected){
+    const kR=S.king.row+R+1,kC=S.king.col;
+    const dirs=[[0,-1],[0,1],[-1,0],[1,0]];
+    for(const [dr,dc] of dirs){
+      const nr=kR+dr,nc=kC+dc;
+      if(nc>=0&&nc<C&&nr>=R+1&&nr<R*2+1){
+        const hp=cp(nr,nc);
+        if(mx>hp.x-hp.w/2&&mx<hp.x+hp.w/2&&my>hp.y-hp.h/2&&my<hp.y+hp.h/2){
+          // Check if target cell has a unit
+          const targetKey=(nr-R-1)+','+nc;
+          if(S.bd[targetKey]){
+            // Swap king with unit
+            msg('🔄 国王和棋子交换位置');
+          } else {
+            S.king.row=nr-R-1;S.king.col=nc;
+            msg('👑国王移动！');
+          }
+          S.king.selected=false;draw();return;
+        }
+      }
+    }
+    S.king.selected=false;draw();return;
+  }
+  // Normal board interaction
   for(let r=0;r<R;r++)for(let c=0;c<C;c++){
     const p=cp(r+R+1,c);
     if(mx>p.x-p.w/2&&mx<p.x+p.w/2&&my>p.y-p.h/2&&my<p.y+p.h/2){
@@ -1083,6 +1270,15 @@ function startBattle(){
     const sb=1+(u.star-1)*.5;
     S.bu.push({...u,tm:'a',x:p.x,y:p.y,hp:d.hp*hm*sb,mhp:d.hp*hm*sb,at:d.at*am*sb,cd:0,cb,sb});
   }
+  // Spawn King (player hero)
+  const kp=cp(S.king.row+R+1,S.king.col);
+  const kd=P.king;
+  S.bu.push({type:'king',star:1,tm:'p',x:kp.x,y:kp.y,hp:kd.hp,mhp:kd.hp,at:kd.at,cd:0,cb:0,sb:1,
+    kingMode:S.king.mode,isKing:true,race:'E'});
+  // Spawn Demon (AI hero)
+  const dp=cp(3-S.demonPos.row,S.demonPos.col);
+  const dd=P.demon;
+  S.bu.push({type:'demon',star:1,tm:'a',x:dp.x,y:dp.y,hp:dd.hp,mhp:dd.hp,at:dd.at,cd:0,cb:0,sb:1,race:'F'});
   S.ph='battle';document.getElementById('btnF').disabled=true;msg('⚔️ 战斗！');
   if(S.bi)clearInterval(S.bi);
   S.bi=setInterval(tick,50);
@@ -1106,12 +1302,17 @@ function tick(){
     u.cd-=.05;if(u.cd>0)return;
     const d=P[u.type];
 
-    // === HEALER/PRIEST: heal lowest HP ally instead of attacking ===
+    // === HEALER/PRIEST: heal lowest HP ally, prioritize King ===
     if(d.heal){
       const allies=alive.filter(a=>a.tm===u.tm&&a.hp>0&&a.hp<a.mhp);
       if(!allies.length)return;
-      let wounded=allies[0],whp=allies[0].hp/allies[0].mhp;
-      allies.forEach(a=>{const r2=a.hp/a.mhp;if(r2<whp){whp=r2;wounded=a}});
+      // Prioritize king if wounded
+      const woundedKing=allies.find(a=>a.isKing);
+      let wounded=woundedKing||allies[0];
+      if(!woundedKing){
+        let whp=allies[0].hp/allies[0].mhp;
+        allies.forEach(a=>{const r2=a.hp/a.mhp;if(r2<whp){whp=r2;wounded=a}});
+      }
       u.cd=d.sp;u.animPhase=1;
       // Check synergy bonus
       const dsyn=u.tm==='p'?getSyn(S.bd):getSyn(S.ab);
@@ -1129,11 +1330,27 @@ function tick(){
       return;
     }
 
-    // === NORMAL ATTACK + BERSERKER LIFESTEAL ===
+    // === NORMAL ATTACK + BERSERKER LIFESTEAL + KING MODES ===
     const enemies=alive.filter(e=>e.tm!==u.tm&&e.hp>0);if(!enemies.length)return;
-    let near=enemies[0],md=1e9;
-    enemies.forEach(e=>{const dd=Math.hypot(e.x-u.x,e.y-u.y);if(dd<md){md=dd;near=e}});
-    if(md<=d.rn*cw+15){
+    // Demon targets king primarily
+    let near;
+    if(d.demon){
+      const kingTarget=enemies.find(e=>e.isKing);
+      near=kingTarget||enemies[0];
+    } else {
+      near=enemies[0];
+    }
+    let md=1e9;
+    enemies.forEach(e=>{const dd=Math.hypot(e.x-u.x,e.y-u.y);if(dd<md){md=dd;if(!d.demon)near=e}});
+
+    // King: dynamic range based on mode
+    let attackRange=d.rn;
+    if(u.isKing){
+      if(u.kingMode==='melee')attackRange=1;
+      else if(u.kingMode==='range')attackRange=3;
+    }
+
+    if(md<=attackRange*cw+15){
       u.cd=d.sp;
       // Trigger attack animation
       u.animPhase=1;
@@ -1161,7 +1378,14 @@ function tick(){
         S.fx.push({kind:'rage',tx:near.x,ty:near.y,life:1,decay:0.05});
       }
       // Attack effect based on type
-      if(d.aoe){
+      if(u.isKing){
+        // King attack based on mode
+        if(u.kingMode==='melee'){
+          S.fx.push({kind:'slash',sx:u.x,sy:u.y,tx:near.x,ty:near.y,life:1,decay:0.06,cr});
+        } else {
+          S.fx.push({kind:'arrow',sx:u.x,sy:u.y,tx:near.x,ty:near.y,life:1,decay:0.06});
+        }
+      } else if(d.aoe){
         S.fx.push({kind:'magic',tx:near.x,ty:near.y,life:1,decay:0.04});
         enemies.forEach(e=>{if(e!==near&&Math.hypot(e.x-near.x,e.y-near.y)<50){
           const ad=Math.round(dm*.5);e.hp-=ad;S.dq.push({val:ad,x:e.x,y:e.y,life:1,cr:false})}});
@@ -1180,6 +1404,7 @@ function tick(){
       u.x+=dx/dd*2;u.y+=dy/dd*2;
     }
   });
+  updateKingHUD();
   draw();
 }
 
@@ -1198,7 +1423,30 @@ function endBattle(win){
   roll();ui();
 }
 
-function reset(){S={r:1,g:GOLD,php:HP,ahp:HP,ph:'prep',bd:{},bn:[],sh:[],ab:{},sel:-1,bu:[],bi:null,w:0,l:0,dq:[],fx:[]};roll();ui();draw()}
+function reset(){S={r:1,g:GOLD,php:HP,ahp:HP,ph:'prep',bd:{},bn:[],sh:[],ab:{},sel:-1,bu:[],bi:null,w:0,l:0,dq:[],fx:[],
+  king:{mode:'melee',col:2,row:0,selected:false}, demonPos:{col:2,row:3}};roll();ui();draw()}
+
+// King mode switching
+function setKingMode(m){
+  if(S.ph==='battle'){
+    // Allow switching during battle too
+    const kb=S.bu.find(u=>u.isKing&&u.tm==='p');
+    if(kb)kb.kingMode=m;
+  }
+  S.king.mode=m;
+  document.getElementById('khMelee').className='kh-btn'+(m==='melee'?' active':'');
+  document.getElementById('khRange').className='kh-btn'+(m==='range'?' active':'');
+}
+
+function updateKingHUD(){
+  const dk=P.king;
+  // Find king in battle units
+  const kb=S.bu.find(u=>u.type==='king'&&u.tm==='p');
+  if(kb){
+    document.getElementById('khHp').textContent='❤️'+Math.max(0,Math.round(kb.hp));
+    document.getElementById('khAtk').textContent='⚔️'+Math.round(kb.at);
+  }
+}
 
 function ui(){
   document.getElementById('php').style.width=(S.php/HP*100)+'%';
