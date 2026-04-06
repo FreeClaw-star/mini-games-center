@@ -43,7 +43,7 @@ body{background:#1a1a2e;color:#eee;font-family:'Segoe UI',sans-serif}
 .king-hud{display:flex;align-items:center;gap:6px;padding:4px 8px;background:linear-gradient(135deg,#2c1810,#4a2520);border:1px solid #ffd700;border-radius:6px;margin:4px 0;flex-wrap:wrap;justify-content:center}
 .king-hud .kh-label{font-size:11px;color:#ffd700;font-weight:bold}
 .king-hud .kh-stat{font-size:10px;color:#ccc;padding:2px 5px;background:#111;border-radius:3px}
-.king-hud .kh-btn{font-size:10px;padding:3px 8px;border:1px solid #888;border-radius:4px;background:#222;color:#eee;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.king-hud .kh-btn{font-size:10px;padding:3px 8px;border:1px solid #888;border-radius:4px;background:#222;color:#eee;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
 .king-hud .kh-btn:active{background:#444}
 .king-hud .kh-btn.active{border-color:#ffd700;color:#ffd700;background:#3a2a10}
 .king-hud .kh-btn.manual{border-color:#e94560;color:#e94560;background:#3a1010}
@@ -52,7 +52,7 @@ body{background:#1a1a2e;color:#eee;font-family:'Segoe UI',sans-serif}
 .king-controls{display:flex!important;gap:6px;justify-content:center;align-items:center;margin:4px 0;flex-wrap:wrap}
 .king-controls.hidden{display:none}
 .dpad{display:grid!important;grid-template-columns:repeat(3,36px)!important;grid-template-rows:repeat(3,30px)!important;gap:2px!important}
-.dpad .dp{display:flex!important;align-items:center;justify-content:center;font-size:16px;background:#1a2a4a!important;border:1px solid #4ecdc4!important;border-radius:6px;color:#4ecdc4!important;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;transition:background .1s;min-width:36px;min-height:30px}
+.dpad .dp{display:flex!important;align-items:center;justify-content:center;font-size:16px;background:#1a2a4a!important;border:1px solid #4ecdc4!important;border-radius:6px;color:#4ecdc4!important;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;user-select:none}
 .dpad .dp:active,.dpad .dp.pressed{background:#2a4a7a!important;color:#fff!important}
 .kh-btn:active,.kh-btn.pressed,.btn:active,.btn.pressed{transform:scale(.95);opacity:.8}
 .dpad .dp.empty{background:transparent!important;border:none!important;cursor:default}
@@ -1102,7 +1102,7 @@ function drawBU(u){
   const bw=sz*1.2,bh=3;
   cx.fillStyle='#222';cx.fillRect(u.x-bw/2,drawY-sz-2,bw,bh);
   cx.fillStyle=u.tm==='p'?'#4ecdc4':'#e94560';
-  cx.fillRect(u.x-bw/2,drawY-sz-2,bw*Math.max(0,u.hp/u.mhp),bh);
+  cx.fillRect(u.x-bw/2,drawY-sz-2,bw*Math.max(0,Math.min(1,u.hp/(u.mhp||1))),bh);
   // Shield indicator
   if(u.shielded){
     cx.strokeStyle='rgba(241,196,15,0.6)';cx.lineWidth=1.5;
@@ -1250,7 +1250,17 @@ function boardClick(mx,my){
           // Check if target cell has a unit
           const targetKey=(nr-R-1)+','+nc;
           if(S.bd[targetKey]){
-            // Swap king with unit
+            // Swap king with unit: unit goes to king's old cell, king goes to unit's cell
+            const unit = S.bd[targetKey];
+            const oldKingRow = S.king.row;
+            const oldKingCol = S.king.col;
+            S.bd[targetKey] = {type:'king',star:1};
+            S.bd[targetKey].race = P.king.race;
+            delete S.bd[oldKingRow+','+oldKingCol];
+            S.king.row = nr-R-1;
+            S.king.col = nc;
+            // Place the swapped-out unit where king was
+            S.bd[oldKingRow+','+oldKingCol] = unit;
             msg('🔄 国王和棋子交换位置');
           } else {
             S.king.row=nr-R-1;S.king.col=nc;
@@ -1293,6 +1303,7 @@ let battleKingSelected = false;
 let battleKingMoveTarget = null;
 let kingManual = true; // true = player controls king, false = auto mode
 let kingDir = null; // 'up'|'down'|'left'|'right'|null - D-pad direction
+let kingAttackReady = false; // set true by kingAttack(), consumed by tick() for exactly one attack
 
 // AI
 function aiPrep(){
@@ -1327,7 +1338,7 @@ function rSyn(){
 function startBattle(){
   if(S.ph!=='prep')return;
   if(!Object.keys(S.bd).length){msg('先买棋子放上场！');return}
-  aiPrep();S.bu=[];S.dq=[];S.fx=[];
+  aiPrep();S.bu=[];S.dq=[];S.fx=[];kingAttackReady=false;
   const ps=getSyn(S.bd),as=getSyn(S.ab);
   for(let k in S.bd){
     const[r,c]=k.split(',').map(Number),u=S.bd[k],d=P[u.type],p=cp(r+R+1,c);
@@ -1424,11 +1435,12 @@ function tick(){
     // King: manual mode = player has FULL control, no auto behavior
     if(u.isKing){
       if(kingManual){
-        // Manual mode: ONLY move if D-pad held, ONLY attack if button pressed
+        // Manual mode: ONLY move if D-pad held, ONLY attack if attack button was just pressed
         if(md <= attackRange*cw+15){
-          // In range - only attack if cooldown was just reset by button
-          if(u.cd > 0) return; // On cooldown, do nothing
-          // cd was reset - fall through to attack
+          // In range - only attack if attack button was just pressed AND cooldown allows
+          if(!kingAttackReady || u.cd > 0) return;
+          // Button was pressed and cooldown ready - consume and fall through to attack
+          kingAttackReady=false;
         } else {
           // Out of range - only move if D-pad held, otherwise do nothing
           if(!kingDir) return;
@@ -1442,7 +1454,6 @@ function tick(){
             u.x+=sdx*2.5;
             u.y+=sdy*2.5;
           }
-          u.cd=0;
           return;
         }
       } else {
@@ -1516,7 +1527,7 @@ function tick(){
 
 function endBattle(win){
   S.ph='prep';document.getElementById('btnF').disabled=false;
-  battleKingSelected=false;battleKingMoveTarget=null;kingDir=null;
+  battleKingSelected=false;battleKingMoveTarget=null;kingDir=null;kingAttackReady=false;
   document.getElementById('khManual').className='kh-btn manual';
   document.getElementById('khManual').textContent='🎮手动';
   updateDpadVisual();
@@ -1535,7 +1546,7 @@ function endBattle(win){
 
 function reset(){S={r:1,g:GOLD,php:HP,ahp:HP,ph:'prep',bd:{},bn:[],sh:[],ab:{},sel:-1,bu:[],bi:null,w:0,l:0,dq:[],fx:[],
   king:{mode:'melee',col:2,row:0,selected:false}, demonPos:{col:2,row:3}};
-  battleKingSelected=false;battleKingMoveTarget=null;kingManual=true;kingDir=null;
+  battleKingSelected=false;battleKingMoveTarget=null;kingManual=true;kingDir=null;kingAttackReady=false;
   document.getElementById('khManual').className='kh-btn manual';
   document.getElementById('khManual').textContent='🎮手动';
   roll();ui();draw()}
@@ -1555,6 +1566,7 @@ function setKingMode(m){
 function setKingManual(v){
   kingManual=v;
   kingDir=null;
+  kingAttackReady=false;
   battleKingSelected=false;
   battleKingMoveTarget=null;
   document.getElementById('khManual').className='kh-btn'+(v?' manual':' ');
@@ -1566,8 +1578,9 @@ function setKingManual(v){
 function kingAttack(){
   const kb=S.bu.find(u=>u.isKing&&u.tm==='p');
   if(!kb)return;
-  // Trigger immediate attack
-  kb.cd=0;
+  // Mark attack as ready - tick() will consume this for exactly one attack
+  kingAttackReady=true;
+  kb.cd=0; // reset cooldown so tick allows the attack
   kb.animPhase=1;
   // Flash attack button
   const btn=document.getElementById('atkBtn');
