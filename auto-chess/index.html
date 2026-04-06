@@ -1510,7 +1510,7 @@ function endBattle(win){
   updateDpadVisual();
   if(S._raf)cancelAnimationFrame(S._raf);
   const dm=5+S.r*2;
-  if(win){S.ahp=Math.max(0,S.ahp-dm);S.w++;msg('🎉 胜！-'+dm+'HP')}
+  if(win){S.ahp=Math.max(0,S.ahp-1);S.w++;msg('🎉 胜！-1HP')}
   else{S.php=Math.max(0,S.php-dm);S.l++;msg('💔 败！-'+dm+'HP')}
   let inc=5+Math.min(5,S.g/10|0);
   if(S.w>=3)inc+=2;else if(S.w>=2)inc++;
