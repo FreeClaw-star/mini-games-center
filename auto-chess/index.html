@@ -69,20 +69,6 @@ body{background:#1a1a2e;color:#eee;font-family:'Segoe UI',sans-serif;overflow-x:
   </div>
   <div class="gold-info" id="ginfo">💰10</div>
   <canvas id="c"></canvas>
-  <div class="king-controls" id="kingControls">
-    <div class="dpad">
-      <div class="dp empty"></div>
-      <div class="dp" id="dpUp" ontouchstart="kingDir='up'" onmousedown="kingDir='up'" onmouseup="kingDir=null" onmouseleave="kingDir=null" ontouchend="kingDir=null">⬆️</div>
-      <div class="dp empty"></div>
-      <div class="dp" id="dpLeft" ontouchstart="kingDir='left'" onmousedown="kingDir='left'" onmouseup="kingDir=null" onmouseleave="kingDir=null" ontouchend="kingDir=null">⬅️</div>
-      <div class="dp empty"></div>
-      <div class="dp" id="dpRight" ontouchstart="kingDir='right'" onmousedown="kingDir='right'" onmouseup="kingDir=null" onmouseleave="kingDir=null" ontouchend="kingDir=null">➡️</div>
-      <div class="dp empty"></div>
-      <div class="dp" id="dpDown" ontouchstart="kingDir='down'" onmousedown="kingDir='down'" onmouseup="kingDir=null" onmouseleave="kingDir=null" ontouchend="kingDir=null">⬇️</div>
-      <div class="dp empty"></div>
-    </div>
-    <button class="atk-btn" id="atkBtn" ontouchstart="kingAttack()" onmousedown="kingAttack()">⚔️攻击</button>
-  </div>
   <div class="msg" id="msg"></div>
   <div class="synergy-bar" id="syn"></div>
   <div class="label">📦 手牌区（点一下选中→点棋盘放上场 | 再点一下自动上场）</div>
@@ -93,12 +79,25 @@ body{background:#1a1a2e;color:#eee;font-family:'Segoe UI',sans-serif;overflow-x:
   </div>
   <div class="shop" id="shop"></div>
   <div class="king-hud" id="kingHud">
-    <span class="kh-label">👑国王</span>
-    <span class="kh-stat" id="khHp">❤️120</span>
-    <span class="kh-stat" id="khAtk">⚔️18</span>
-    <button class="kh-btn active" id="khMelee" onclick="setKingMode('melee')">🗡️近战</button>
-    <button class="kh-btn" id="khRange" onclick="setKingMode('range')">🏹远程</button>
-    <button class="kh-btn manual" id="khManual" onclick="setKingManual(!kingManual)">🎮手动</button>
+    <div class="king-controls">
+      <div class="dpad">
+        <div class="dp empty"></div>
+        <div class="dp" id="dpUp" ontouchstart="kingDir='up'" onmousedown="kingDir='up'" onmouseup="kingDir=null" onmouseleave="kingDir=null" ontouchend="kingDir=null">⬆️</div>
+        <div class="dp empty"></div>
+        <div class="dp" id="dpLeft" ontouchstart="kingDir='left'" onmousedown="kingDir='left'" onmouseup="kingDir=null" onmouseleave="kingDir=null" ontouchend="kingDir=null">⬅️</div>
+        <div class="dp empty"></div>
+        <div class="dp" id="dpRight" ontouchstart="kingDir='right'" onmousedown="kingDir='right'" onmouseup="kingDir=null" onmouseleave="kingDir=null" ontouchend="kingDir=null">➡️</div>
+        <div class="dp empty"></div>
+        <div class="dp" id="dpDown" ontouchstart="kingDir='down'" onmousedown="kingDir='down'" onmouseup="kingDir=null" onmouseleave="kingDir=null" ontouchend="kingDir=null">⬇️</div>
+        <div class="dp empty"></div>
+      </div>
+      <button class="atk-btn" id="atkBtn" ontouchstart="kingAttack()" onmousedown="kingAttack()">⚔️攻击</button>
+    </div>
+    <div style="margin-top:4px">
+      <button class="kh-btn active" id="khMelee" onclick="setKingMode('melee')">🗡️近战</button>
+      <button class="kh-btn" id="khRange" onclick="setKingMode('range')">🏹远程</button>
+      <button class="kh-btn manual" id="khManual" onclick="setKingManual(!kingManual)">🎮手动</button>
+    </div>
   </div>
   <div class="help" id="helpText">👑 方向键控制国王移动 | ⚔️攻击=立即攻击 | 🗡️近战(1格)🏹远程(3格)</div>
 </div>
