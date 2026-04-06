@@ -46,6 +46,7 @@ body{background:#1a1a2e;color:#eee;font-family:'Segoe UI',sans-serif;overflow-x:
 .king-hud .kh-btn{font-size:10px;padding:3px 8px;border:1px solid #888;border-radius:4px;background:#222;color:#eee;cursor:pointer;-webkit-tap-highlight-color:transparent}
 .king-hud .kh-btn:active{background:#444}
 .king-hud .kh-btn.active{border-color:#ffd700;color:#ffd700;background:#3a2a10}
+.king-hud .kh-btn.manual{border-color:#e94560;color:#e94560;background:#3a1010}
 </style>
 </head>
 <body>
@@ -72,8 +73,9 @@ body{background:#1a1a2e;color:#eee;font-family:'Segoe UI',sans-serif;overflow-x:
     <span class="kh-stat" id="khAtk">⚔️18</span>
     <button class="kh-btn active" id="khMelee" onclick="setKingMode('melee')">🗡️近战</button>
     <button class="kh-btn" id="khRange" onclick="setKingMode('range')">🏹远程</button>
+    <button class="kh-btn" id="khManual" onclick="setKingManual(!kingManual)">🤖自动</button>
   </div>
-  <div class="help">准备阶段：点国王选中→点相邻格移动 | 战斗中自动按模式攻击</div>
+  <div class="help">👑 点击🎮手动→点国王选中→点地面移动 | 🗡️近战(1格)🏹远程(3格) | 🤖自动模式=国王自己追敌</div>
 </div>
 <script>
 // Polyfill roundRect
@@ -1083,6 +1085,21 @@ function drawBU(u){
     cx.strokeStyle='rgba(241,196,15,0.6)';cx.lineWidth=1.5;
     cx.beginPath();cx.arc(u.x,drawY,sz*0.7,0,Math.PI*2);cx.stroke();
   }
+  // King selection highlight in battle
+  if(u.isKing && battleKingSelected){
+    cx.fillStyle='rgba(255,215,0,0.25)';cx.strokeStyle='#ffd700';cx.lineWidth=2;
+    cx.beginPath();cx.roundRect(u.x-sz-3,drawY-sz-3,sz*2+6,sz*2+6,6);cx.fill();cx.stroke();
+    // Draw move target indicator
+    if(battleKingMoveTarget){
+      cx.fillStyle='rgba(255,215,0,0.15)';cx.strokeStyle='#ffd700';cx.lineWidth=1.5;
+      cx.beginPath();cx.arc(battleKingMoveTarget.x,battleKingMoveTarget.y,12,0,Math.PI*2);cx.fill();cx.stroke();
+      // Direction line
+      cx.strokeStyle='rgba(255,215,0,0.5)';cx.lineWidth=1;
+      cx.setLineDash([3,3]);
+      cx.beginPath();cx.moveTo(u.x,drawY);cx.lineTo(battleKingMoveTarget.x,battleKingMoveTarget.y);cx.stroke();
+      cx.setLineDash([]);
+    }
+  }
   drawChar(cx,u.type,u.x,drawY,sz,u.tm==='a',u.star,u.animPhase||0);
 }
 
@@ -1166,6 +1183,30 @@ function autoPlace(bi){
 
 // Board click
 function boardClick(mx,my){
+  // === BATTLE MODE: player-controlled king movement ===
+  if(S.ph==='battle'){
+    const kb=S.bu.find(u=>u.isKing&&u.tm==='p');
+    if(!kb)return;
+    // Check if clicking on the king to select/deselect
+    const kRadius=20;
+    if(Math.hypot(mx-kb.x,my-kb.y)<kRadius){
+      battleKingSelected=!battleKingSelected;
+      if(battleKingSelected){
+        battleKingMoveTarget=null;
+        msg('👑国王选中！点击地面移动');
+      } else {
+        battleKingMoveTarget=null;
+      }
+      return;
+    }
+    // If king is selected, clicking elsewhere sets move target
+    if(battleKingSelected){
+      battleKingMoveTarget={x:mx,y:my};
+      return;
+    }
+    return;
+  }
+
   if(S.ph!=='prep')return;
   // Check if clicking on the king
   const kp=cp(S.king.row+R+1,S.king.col);
@@ -1223,6 +1264,11 @@ cv.addEventListener('click',e=>{const p=getPos(e);boardClick(p.x,p.y)});
 cv.addEventListener('touchend',e=>{e.preventDefault();const t=e.changedTouches[0];
   const r=cv.getBoundingClientRect(),sx=W/r.width,sy=H/r.height;
   boardClick((t.clientX-r.left)*sx,(t.clientY-r.top)*sy)},{passive:false});
+
+// Battle mode king control
+let battleKingSelected = false;
+let battleKingMoveTarget = null;
+let kingManual = false; // true = player controls king, false = auto mode
 
 // AI
 function aiPrep(){
@@ -1350,6 +1396,27 @@ function tick(){
       else if(u.kingMode==='range')attackRange=3;
     }
 
+    // King: only move/auto-chase when not in manual mode
+    if(u.isKing && md > attackRange*cw+15){
+      // In manual mode: only move if player set a target
+      if(kingManual){
+        if(battleKingSelected && battleKingMoveTarget){
+          let tdx=battleKingMoveTarget.x-u.x;
+          let tdy=battleKingMoveTarget.y-u.y;
+          let tdd=Math.hypot(tdx,tdy);
+          if(tdd>0){u.x+=tdx/tdd*1.8;u.y+=tdy/tdd*1.8;}
+          if(tdd<8)battleKingMoveTarget=null;
+          u.cd=0;return;
+        }
+        // In manual mode but no target set: stay still
+        return;
+      }
+      // Auto mode: always chase nearest enemy
+      const dx=near.x-u.x,dy=near.y-u.y,dd=Math.hypot(dx,dy);
+      if(dd>0){u.x+=dx/dd*1.8;u.y+=dy/dd*1.8;}
+      u.cd=0;return;
+    }
+
     if(md<=attackRange*cw+15){
       u.cd=d.sp;
       // Trigger attack animation
@@ -1410,6 +1477,9 @@ function tick(){
 
 function endBattle(win){
   S.ph='prep';document.getElementById('btnF').disabled=false;
+  battleKingSelected=false;battleKingMoveTarget=null;kingManual=false;
+  document.getElementById('khManual').className='kh-btn';
+  document.getElementById('khManual').textContent='🤖自动';
   if(S._raf)cancelAnimationFrame(S._raf);
   const dm=5+S.r*2;
   if(win){S.ahp=Math.max(0,S.ahp-dm);S.w++;msg('🎉 胜！-'+dm+'HP')}
@@ -1424,7 +1494,11 @@ function endBattle(win){
 }
 
 function reset(){S={r:1,g:GOLD,php:HP,ahp:HP,ph:'prep',bd:{},bn:[],sh:[],ab:{},sel:-1,bu:[],bi:null,w:0,l:0,dq:[],fx:[],
-  king:{mode:'melee',col:2,row:0,selected:false}, demonPos:{col:2,row:3}};roll();ui();draw()}
+  king:{mode:'melee',col:2,row:0,selected:false}, demonPos:{col:2,row:3}};
+  battleKingSelected=false;battleKingMoveTarget=null;kingManual=false;
+  document.getElementById('khManual').className='kh-btn';
+  document.getElementById('khManual').textContent='🤖自动';
+  roll();ui();draw()}
 
 // King mode switching
 function setKingMode(m){
@@ -1436,6 +1510,21 @@ function setKingMode(m){
   S.king.mode=m;
   document.getElementById('khMelee').className='kh-btn'+(m==='melee'?' active':'');
   document.getElementById('khRange').className='kh-btn'+(m==='range'?' active':'');
+}
+
+function setKingManual(v){
+  kingManual=v;
+  if(v){
+    battleKingSelected=false;
+    battleKingMoveTarget=null;
+    msg('🎮 手动模式：点击国王选中→再点地面移动');
+  } else {
+    battleKingSelected=false;
+    battleKingMoveTarget=null;
+    msg('🤖 自动模式：国王自动追敌攻击');
+  }
+  document.getElementById('khManual').className='kh-btn'+(v?' manual':' ');
+  document.getElementById('khManual').textContent=v?'🎮手动':'🤖自动';
 }
 
 function updateKingHUD(){
