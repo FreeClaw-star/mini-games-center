@@ -86,7 +86,7 @@ body{background:#1a1a2e;color:#eee;font-family:'Segoe UI',sans-serif;overflow-x:
     <button class="kh-btn" id="khRange" onclick="setKingMode('range')">🏹远程</button>
     <button class="kh-btn" id="khManual" onclick="setKingManual(!kingManual)">🤖自动</button>
   </div>
-  <div class="king-controls hidden" id="kingControls">
+  <div class="king-controls" id="kingControls">
     <div class="dpad">
       <div class="dp empty"></div>
       <div class="dp" id="dpUp" ontouchstart="kingDir='up'" onmousedown="kingDir='up'" onmouseup="kingDir=null" onmouseleave="kingDir=null" ontouchend="kingDir=null">⬆️</div>
@@ -100,7 +100,7 @@ body{background:#1a1a2e;color:#eee;font-family:'Segoe UI',sans-serif;overflow-x:
     </div>
     <button class="atk-btn" id="atkBtn" ontouchstart="kingAttack()" onmousedown="kingAttack()">⚔️攻击</button>
   </div>
-  <div class="help" id="helpText">👑 战斗中显示方向键控制国王 | 🗡️近战(1格)🏹远程(3格) | 🤖自动=国王自己追敌</div>
+  <div class="help" id="helpText">👑 方向键控制国王移动 | ⚔️攻击=立即攻击 | 🗡️近战(1格)🏹远程(3格)</div>
 </div>
 <script>
 // Polyfill roundRect
@@ -1351,9 +1351,7 @@ function startBattle(){
   const dp=cp(3-S.demonPos.row,S.demonPos.col);
   const dd=P.demon;
   S.bu.push({type:'demon',star:1,tm:'a',x:dp.x,y:dp.y,hp:dd.hp,mhp:dd.hp,at:dd.at,cd:0,cb:0,sb:1,race:'F'});
-  S.ph='battle';document.getElementById('btnF').disabled=true;
-  if(kingManual)document.getElementById('kingControls').classList.remove('hidden');
-  msg('⚔️ 战斗！');
+  S.ph='battle';document.getElementById('btnF').disabled=true;msg('⚔️ 战斗！');
   if(S.bi)clearInterval(S.bi);
   S.bi=setInterval(tick,50);
   // Start render loop for smooth animations
@@ -1508,8 +1506,7 @@ function tick(){
 
 function endBattle(win){
   S.ph='prep';document.getElementById('btnF').disabled=false;
-  battleKingSelected=false;battleKingMoveTarget=null;kingManual=false;kingDir=null;
-  document.getElementById('kingControls').classList.add('hidden');
+  battleKingSelected=false;battleKingMoveTarget=null;kingDir=null;
   document.getElementById('khManual').className='kh-btn';
   document.getElementById('khManual').textContent='🤖自动';
   updateDpadVisual();
@@ -1529,7 +1526,6 @@ function endBattle(win){
 function reset(){S={r:1,g:GOLD,php:HP,ahp:HP,ph:'prep',bd:{},bn:[],sh:[],ab:{},sel:-1,bu:[],bi:null,w:0,l:0,dq:[],fx:[],
   king:{mode:'melee',col:2,row:0,selected:false}, demonPos:{col:2,row:3}};
   battleKingSelected=false;battleKingMoveTarget=null;kingManual=false;kingDir=null;
-  document.getElementById('kingControls').classList.add('hidden');
   document.getElementById('khManual').className='kh-btn';
   document.getElementById('khManual').textContent='🤖自动';
   roll();ui();draw()}
@@ -1552,12 +1548,10 @@ function setKingManual(v){
   if(v){
     battleKingSelected=false;
     battleKingMoveTarget=null;
-    document.getElementById('kingControls').classList.remove('hidden');
     msg('🎮 手动模式：方向键移动 ⚔️攻击');
   } else {
     battleKingSelected=false;
     battleKingMoveTarget=null;
-    document.getElementById('kingControls').classList.add('hidden');
     msg('🤖 自动模式：国王自动追敌攻击');
   }
   document.getElementById('khManual').className='kh-btn'+(v?' manual':' ');
