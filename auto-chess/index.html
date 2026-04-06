@@ -7,7 +7,7 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;touch-callout:none;touch-action:none}
 body{background:#1a1a2e;color:#eee;font-family:'Segoe UI',sans-serif;overflow-x:hidden;min-height:100vh;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none}
-#app{max-width:600px;margin:0 auto;padding:6px;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent;touch-action:none;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+#app{max-width:500px;margin:0 auto;padding:4px;height:100vh;display:flex;flex-direction:column;overflow:hidden}
 .header{display:flex;justify-content:space-between;align-items:center;padding:4px 8px;background:#16213e;border-radius:8px;margin-bottom:4px;flex-shrink:0}
 .player-info{display:flex;align-items:center;gap:3px;font-size:12px}
 .hp-bar{width:60px;height:12px;background:#333;border-radius:7px;overflow:hidden;position:relative}
@@ -15,12 +15,12 @@ body{background:#1a1a2e;color:#eee;font-family:'Segoe UI',sans-serif;overflow-x:
 .hp-text{position:absolute;top:0;left:0;right:0;text-align:center;font-size:9px;line-height:12px;color:#fff;text-shadow:0 0 2px #000}
 .gold-info{font-size:13px;color:#ffd700;font-weight:bold;text-align:center;padding:2px;flex-shrink:0}
 .round-info{text-align:center;font-size:11px;color:#aaa}
-#game-canvas{flex:1;width:100%;min-height:0;border-radius:8px;display:block;background:#0a0a1a;-webkit-user-select:none;user-select:none}
+#game-canvas{width:100%;aspect-ratio:1;max-height:45vh;border-radius:8px;display:block;background:#0a0a1a;flex-shrink:0}
 .synergy-bar{display:flex;gap:3px;padding:3px;background:#16213e;border-radius:6px;margin:4px 0;flex-wrap:wrap;justify-content:center;flex-shrink:0}
 .synergy{padding:2px 4px;border-radius:4px;font-size:9px;background:#222;border:1px solid #444}
 .synergy.active{border-color:#4ecdc4;color:#4ecdc4;background:#1a3a3a}
-.shop{display:flex;gap:3px;padding:4px;background:#16213e;border-radius:8px;margin-bottom:4px;overflow-x:auto;flex-shrink:0}
-.shop-item{flex:1;min-width:50px;padding:3px 2px;background:#0f3460;border-radius:6px;text-align:center;cursor:pointer;border:2px solid transparent;transition:all .15s;-webkit-tap-highlight-color:transparent}
+.shop{display:flex;gap:3px;padding:4px;background:#16213e;border-radius:8px;margin-bottom:4px;overflow-x:auto;overflow-y:hidden;flex-shrink:0;min-height:70px}
+.shop-item{flex:0 0 auto;min-width:52px;padding:3px 2px;background:#0f3460;border-radius:6px;text-align:center;cursor:pointer;border:2px solid transparent;transition:all .15s;-webkit-tap-highlight-color:transparent}
 .shop-item:active{border-color:#e94560;transform:scale(.96)}
 .shop-item.bought{opacity:.3;pointer-events:none}
 .shop-item canvas{display:block;margin:0 auto 2px}
@@ -33,7 +33,7 @@ body{background:#1a1a2e;color:#eee;font-family:'Segoe UI',sans-serif;overflow-x:
 .btn-fight{background:#e94560;color:#fff}
 .btn-fight:disabled{background:#555;cursor:not-allowed}
 .btn-refresh{background:#0f3460;color:#4ecdc4;border:1px solid #4ecdc4}
-.bench{display:flex;gap:3px;padding:4px;background:#16213e;border-radius:6px;min-height:36px;align-items:center;justify-content:center;flex-wrap:wrap;flex-shrink:0}
+.bench{display:flex;gap:3px;padding:4px;background:#16213e;border-radius:6px;min-height:44px;align-items:center;justify-content:center;flex-wrap:wrap;flex-shrink:0;overflow-x:auto;overflow-y:hidden}
 .bench-unit{width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:#0f3460;border-radius:6px;cursor:pointer;border:2px solid transparent;position:relative;-webkit-tap-highlight-color:transparent}
 .bench-unit.selected{border-color:#ffd700;background:#1a3a60}
 .bench-unit .star-badge{position:absolute;top:-3px;right:-3px;background:#ff6b6b;color:#fff;font-size:7px;width:12px;height:12px;border-radius:50%;display:flex;align-items:center;justify-content:center}
@@ -62,8 +62,6 @@ body{background:#1a1a2e;color:#eee;font-family:'Segoe UI',sans-serif;overflow-x:
 </style>
 </head>
 <body>
-<!-- 触摸覆盖层 - 拦截所有触摸，统一用坐标判断按钮 -->
-<canvas id="touchLayer" style="position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;background:transparent;display:none"></canvas>
 <div id="app">
   <div class="header">
     <div class="player-info"><span>🧑</span><div class="hp-bar"><div class="hp-fill" id="php" style="width:100%;background:#4ecdc4"></div><div class="hp-text" id="pht">100</div></div></div>
@@ -1604,117 +1602,6 @@ function ui(){
   rBn();rSyn();rShop();draw();
 }
 function msg(t){const e=document.getElementById('msg');e.textContent=t;clearTimeout(e._t);e._t=setTimeout(()=>e.textContent='',2500)}
-
-// ============================================================
-// 触摸覆盖层 - 统一处理所有按钮点击，坐标判断
-// ============================================================
-(function initTouchLayer(){
-  const layer=document.getElementById('touchLayer');
-  const app=document.getElementById('app');
-
-  // 按钮区域定义
-  let buttons=[];
-
-  function updateButtons(){
-    buttons=[];
-    const appRect=app.getBoundingClientRect();
-    const scaleX=app.offsetWidth/appRect.width;
-    const scaleY=app.offsetHeight/appRect.height;
-
-    // 遍历所有按钮，用 getBoundingClientRect 获取实际屏幕坐标
-    app.querySelectorAll('.dp, .atk-btn, .kh-btn, .btn').forEach(el=>{
-      const rect=el.getBoundingClientRect();
-      // 跳过不可见的
-      if(rect.width===0||rect.height===0||rect.top<0)return;
-      const id=el.id||'';
-      let action=null;
-      if(id==='dpUp')action=()=>{kingDir='up'};
-      else if(id==='dpDown')action=()=>{kingDir='down'};
-      else if(id==='dpLeft')action=()=>{kingDir='left'};
-      else if(id==='dpRight')action=()=>{kingDir='right'};
-      else if(id==='atkBtn')action=()=>kingAttack();
-      else if(id==='khMelee')action=()=>setKingMode('melee');
-      else if(id==='khRange')action=()=>setKingMode('range');
-      else if(id==='khManual')action=()=>setKingManual(!kingManual);
-      else if(id==='btnR')action=()=>document.getElementById('btnR').click();
-      else if(id==='btnF')action=()=>document.getElementById('btnF').click();
-      if(action){
-        buttons.push({rect,action,el});
-      }
-    });
-  }
-
-  function hitTest(clientX,clientY){
-    for(const btn of buttons){
-      if(clientX>=btn.rect.left&&clientX<=btn.rect.right&&
-         clientY>=btn.rect.top&&clientY<=btn.rect.bottom){
-        return btn;
-      }
-    }
-    return null;
-  }
-
-  // 显示/隐藏触摸层
-  function showLayer(){layer.style.display='block';updateButtons()}
-  function hideLayer(){layer.style.display='none'}
-
-  // 监听触摸事件
-  layer.addEventListener('touchstart',e=>{
-    e.preventDefault();
-    layer.style.display='block';
-    updateButtons();
-    for(const touch of e.changedTouches){
-      const btn=hitTest(touch.clientX,touch.clientY);
-      if(btn){btn.action();btn.el.classList.add('pressed');}
-    }
-  },{passive:false});
-
-  layer.addEventListener('touchmove',e=>{
-    e.preventDefault();
-    // 跟踪触摸移动，更新 pressed 状态
-    updateButtons();
-  },{passive:false});
-
-  layer.addEventListener('touchend',e=>{
-    e.preventDefault();
-    // 清除所有 pressed 状态，重置方向
-    buttons.forEach(b=>b.el.classList.remove('pressed'));
-    kingDir=null;
-  },{passive:false});
-
-  layer.addEventListener('touchcancel',e=>{
-    e.preventDefault();
-    buttons.forEach(b=>b.el.classList.remove('pressed'));
-    kingDir=null;
-  },{passive:false});
-
-  // 鼠标支持（PC端）
-  layer.addEventListener('mousedown',e=>{
-    updateButtons();
-    const btn=hitTest(e.clientX,e.clientY);
-    if(btn){btn.action();btn.el.classList.add('pressed');}
-  });
-  layer.addEventListener('mouseup',e=>{
-    buttons.forEach(b=>b.el.classList.remove('pressed'));
-    kingDir=null;
-  });
-  layer.addEventListener('mouseleave',e=>{
-    buttons.forEach(b=>b.el.classList.remove('pressed'));
-    kingDir=null;
-  });
-
-  // 当游戏进入战斗阶段时启用触摸层
-  // 通过定时检查按钮是否可见
-  setInterval(()=>{
-    const kh=document.getElementById('kingControls');
-    if(kh&&kh.offsetWidth>0&&kh.offsetHeight>0){
-      showLayer();
-    }
-  },500);
-
-  // 初始显示
-  showLayer();
-})();
 
 roll();ui();draw();
 </script>
